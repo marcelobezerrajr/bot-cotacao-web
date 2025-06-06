@@ -1,4 +1,24 @@
-id,moeda
-1,dolar
-2,euro
-3,peso
+Id,Moeda,Símbolo,Código
+1,Dólar,$,USD
+2,Euro,€,EUR
+3,Real,R$,BRL
+4,Libra Esterlina,£,GBP
+5,Iene,¥,JPY
+6,Franco Suíço,CHF,CHF
+7,Dólar Australiano,A$,AUD
+8,Peso Mexicano,$,MXN
+9,Dólar Canadiano,$,CAD
+10,Dólar de Hong Kong,HK$,HKD
+11,Yuan Chinês,¥,CNY
+12,Rúpia Indiana,₹,INR
+13,Peso Chileno,$,CLP
+14,Peso Argentino,$,ARS
+15,Peso Colombiano,$,COP
+16,Rúpia Russa,₽,RUB
+17,Riyal Saudi,﷼,SAR
+18,Dólar de Singapura,S$,SGD
+19,Peso Filipino,₱,PHP
+20,Yuan de Taiwan,NT$,TWD
+21,Dinar Iraquiano,؋,IQD
+22,Rúpia Sri Lanka,Rs,LKR
+23,Yuan Chinês,¥,CNY

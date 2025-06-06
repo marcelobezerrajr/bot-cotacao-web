@@ -1,112 +1,179 @@
-"""
-WARNING:
-
-Please make sure you install the bot dependencies with `pip install --upgrade -r requirements.txt`
-in order to get all the dependencies on your Python environment.
-
-Also, if you are using PyCharm or another IDE, make sure that you use the SAME Python interpreter
-as your IDE.
-
-If you get an error like:
-```
-ModuleNotFoundError: No module named 'botcity'
-```
-
-This means that you are likely using a different Python interpreter than the one used to install the dependencies.
-To fix this, you can either:
-- Use the same interpreter as your IDE and install your bot with `pip install --upgrade -r requirements.txt`
-- Use the same interpreter as the one used to install the bot (`pip install --upgrade -r requirements.txt`)
-
-Please refer to the documentation for more information at
-https://documentation.botcity.dev/tutorials/python-automations/web/
-"""
-
-# Import for the Web Bot
+import logging
 from botcity.web import WebBot, Browser, By
 from botcity.plugins.csv import BotCSVPlugin
-
-# Import for integration with BotCity Maestro SDK
 from botcity.maestro import *
-
-# Import for the Web Driver Manager
 from webdriver_manager.chrome import ChromeDriverManager
-from selenium import webdriver
+from typing import List, Dict, Tuple
 
-# Disable errors if we are not connected to Maestro
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
 BotMaestroSDK.RAISE_NOT_CONNECTED = False
 
 
-def main():
-    # Runner passes the server url, the id of the task being executed,
-    # the access token and the parameters that this task receives (when applicable).
-    maestro = BotMaestroSDK.from_sys_args()
-    ## Fetch the BotExecution with details from the task, including parameters
-    execution = maestro.get_execution()
+def carregar_dados_csv(bot: WebBot, nome_arquivo: str) -> List[Dict[str, str]]:
+    """
+    Lê um arquivo CSV localizado nos recursos do projeto e retorna os dados como uma lista de dicionários.
 
-    print(f"Task ID is: {execution.task_id}")
-    print(f"Task Parameters are: {execution.parameters}")
-
-    bot = WebBot()
+    :param bot: Instância do WebBot usada para resolver o caminho do recurso.
+    :param nome_arquivo: Nome do arquivo CSV a ser lido.
+    :return: Lista de dicionários com os dados do CSV.
+    :raises FileNotFoundError: Se o arquivo não for encontrado.
+    :raises Exception: Para erros genéricos na leitura do arquivo.
+    """
+    caminho = bot.get_resource_abspath(nome_arquivo)
     planilha = BotCSVPlugin()
+    try:
+        dados = planilha.read(caminho).as_dict()
+        logging.info(f"{len(dados)} registros carregados de '{nome_arquivo}'.")
+        return dados
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Arquivo '{nome_arquivo}' não encontrado.")
+    except Exception as e:
+        raise Exception(f"Erro ao ler '{nome_arquivo}': {e}")
 
-    dados = planilha.read(bot.get_resource_abspath("moedas.csv")).as_dict()
-    print(f"Dados lidos do CSV: {dados}")
 
-    # Configure whether or not to run on headless mode
-    bot.headless = False
+def buscar_cotacao(bot: WebBot, moeda: str) -> Tuple[str, str]:
+    """
+    Realiza uma pesquisa no Google para obter a cotação e a data atual da moeda fornecida.
 
-    # Uncomment to change the default Browser to Firefox
-    bot.browser = Browser.CHROME
-
-    # Uncomment to set the WebDriver path
-    bot.driver_path = ChromeDriverManager().install()
-
-    # Opens the Google website.
-    bot.browse("https://www.google.com")
-
-    # Implement here your logic...
-
-    for index, linha in enumerate(dados):
-        pesquisa = bot.find_element("APjFqb", By.ID)
+    :param bot: Instância do WebBot usada para interagir com o navegador.
+    :param moeda: Nome da moeda a ser consultada.
+    :return: Tupla com (cotação, data).
+    :raises RuntimeError: Em caso de falha ao buscar a cotação.
+    """
+    try:
+        pesquisa = bot.find_element('//*[@id="APjFqb"]', By.XPATH)
         pesquisa.clear()
-        pesquisa.send_keys(f"cotação do {linha['moeda']} hoje")
+        pesquisa.send_keys(f"Cotação do {moeda} hoje")
         bot.enter()
+        bot.wait(500)
 
         cotacao = bot.find_element(
             '//*[@id="knowledge-currency__updatable-data-column"]/div[1]/div[2]/span[1]',
             By.XPATH,
+        ).text
+
+        data = bot.find_element(
+            '//*[@id="knowledge-currency__updatable-data-column"]/div[2]/span[1]',
+            By.XPATH,
+        ).text
+
+        return cotacao, data
+    except Exception as e:
+        raise RuntimeError(f"Erro ao buscar cotação da moeda {moeda}: {e}")
+
+
+def salvar_dados_csv(bot: WebBot, planilha: BotCSVPlugin, nome_arquivo: str) -> None:
+    """
+    Salva os dados da planilha em um arquivo CSV.
+
+    :param bot: Instância do WebBot usada para resolver o caminho do arquivo.
+    :param planilha: Instância do BotCSVPlugin com os dados atualizados.
+    :param nome_arquivo: Nome do arquivo de saída.
+    """
+    caminho_saida = bot.get_resource_abspath(nome_arquivo)
+    planilha.write(caminho_saida)
+    logging.info(f"Arquivo salvo em: {caminho_saida}")
+
+
+def processar_moedas(
+    bot: WebBot, planilha: BotCSVPlugin, dados: List[Dict[str, str]]
+) -> Tuple[int, int]:
+    """
+    Processa a lista de moedas, busca as cotações e atualiza a planilha com os resultados.
+
+    :param bot: Instância do WebBot.
+    :param planilha: Instância do BotCSVPlugin a ser preenchida.
+    :param dados: Lista de dicionários com os dados das moedas.
+    :return: Tupla com (quantidade de processados, quantidade de falhas).
+    """
+    processados = 0
+    falhas = 0
+
+    for i, linha in enumerate(dados):
+        moeda = linha.get("Moeda")
+        if not moeda:
+            logging.warning(f"Registro na linha {i} está incompleto.")
+            falhas += 1
+            continue
+
+        try:
+            logging.info(f"Processando: {moeda}")
+            cotacao, data = buscar_cotacao(bot, moeda)
+            planilha.set_entry("Moeda", i, moeda)
+            planilha.set_entry("Cotação", i, cotacao)
+            planilha.set_entry("Data", i, data)
+            processados += 1
+        except Exception as e:
+            logging.error(f"Falha ao processar {moeda}: {e}")
+            falhas += 1
+
+    return processados, falhas
+
+
+def main():
+    maestro = BotMaestroSDK.from_sys_args()
+    execution = maestro.get_execution()
+    logging.info(f"Tarefa Maestro ID: {execution.task_id}")
+
+    bot = WebBot()
+    bot.headless = execution.parameters.get("headless", "false").lower() == "true"
+    bot.browser = Browser.CHROME
+    bot.driver_path = ChromeDriverManager().install()
+
+    total = 0
+    processados = 0
+    falhas = 0
+
+    planilha = BotCSVPlugin()
+
+    try:
+        dados = carregar_dados_csv(bot, "moedas.csv")
+        total = len(dados)
+    except Exception as e:
+        logging.critical(str(e))
+        maestro.finish_task(
+            task_id=execution.task_id,
+            status=AutomationTaskFinishStatus.FAILED,
+            message=str(e),
+            total_items=total,
+            processed_items=processados,
+            failed_items=falhas,
         )
-        print(f"Valor da cotação do {linha['moeda']} hoje: {cotacao.text}")
+        return
 
-        data = bot.find_element(".k0Rg6d.hqAUc > span:nth-child(1)", By.CSS_SELECTOR)
-        print(f"Data da cotação do {linha['moeda']} hoje: {data.text}")
+    logging.info("Iniciando busca no Google...")
+    bot.browse("https://www.google.com")
+    bot.wait(1000)
 
-        planilha.set_entry("cotacao", index, cotacao.text)
-        planilha.set_entry("data", index, data.text)
+    processados, falhas = processar_moedas(bot, planilha, dados)
 
-    planilha.write(bot.get_resource_abspath("moedas_atualizadas.csv"))
+    salvar_dados_csv(bot, planilha, "moedas_atualizadas.csv")
 
-    # Wait 3 seconds before closing
-    bot.wait(3000)
-
-    # Finish and clean up the Web Browser
-    # You MUST invoke the stop_browser to avoid
-    # leaving instances of the webdriver open
+    bot.wait(1000)
     bot.stop_browser()
 
-    # Uncomment to mark this task as finished on BotMaestro
-    maestro.finish_task(
-        task_id=execution.task_id,
-        status=AutomationTaskFinishStatus.SUCCESS,
-        message="Bot Cotação Moedas finalizado com sucesso.",
-        total_items=0,
-        processed_items=0,
-        failed_items=0,
+    status = (
+        AutomationTaskFinishStatus.SUCCESS
+        if falhas == 0
+        else AutomationTaskFinishStatus.FAILED
+    )
+    mensagem = (
+        "Bot finalizado com sucesso."
+        if falhas == 0
+        else f"Bot finalizado com {falhas} falhas."
     )
 
-
-def not_found(label):
-    print(f"Element not found: {label}")
+    maestro.finish_task(
+        task_id=execution.task_id,
+        status=status,
+        message=mensagem,
+        total_items=total,
+        processed_items=processados,
+        failed_items=falhas,
+    )
 
 
 if __name__ == "__main__":
