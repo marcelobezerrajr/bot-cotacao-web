@@ -1,9 +1,9 @@
 import logging
+import pandas as pd
+from typing import Tuple
 from botcity.web import WebBot, Browser, By
-from botcity.plugins.csv import BotCSVPlugin
 from botcity.maestro import *
 from webdriver_manager.chrome import ChromeDriverManager
-from typing import List, Dict, Tuple
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -12,22 +12,21 @@ logging.basicConfig(
 BotMaestroSDK.RAISE_NOT_CONNECTED = False
 
 
-def carregar_dados_csv(bot: WebBot, nome_arquivo: str) -> List[Dict[str, str]]:
+def carregar_dados_csv(bot: WebBot, nome_arquivo: str) -> pd.DataFrame:
     """
-    Lê um arquivo CSV localizado nos recursos do projeto e retorna os dados como uma lista de dicionários.
+    Carrega os dados de um arquivo CSV em um DataFrame do pandas.
 
-    :param bot: Instância do WebBot usada para resolver o caminho do recurso.
-    :param nome_arquivo: Nome do arquivo CSV a ser lido.
-    :return: Lista de dicionários com os dados do CSV.
+    :param bot: Instância do WebBot para resolver caminho do recurso.
+    :param nome_arquivo: Nome do arquivo CSV.
+    :return: DataFrame contendo os dados.
     :raises FileNotFoundError: Se o arquivo não for encontrado.
-    :raises Exception: Para erros genéricos na leitura do arquivo.
+    :raises Exception: Para outros erros ao ler o CSV.
     """
     caminho = bot.get_resource_abspath(nome_arquivo)
-    planilha = BotCSVPlugin()
     try:
-        dados = planilha.read(caminho).as_dict()
-        logging.info(f"{len(dados)} registros carregados de '{nome_arquivo}'.")
-        return dados
+        df = pd.read_csv(caminho)
+        logging.info(f"{len(df)} registros carregados de '{nome_arquivo}'.")
+        return df
     except FileNotFoundError:
         raise FileNotFoundError(f"Arquivo '{nome_arquivo}' não encontrado.")
     except Exception as e:
@@ -36,19 +35,18 @@ def carregar_dados_csv(bot: WebBot, nome_arquivo: str) -> List[Dict[str, str]]:
 
 def buscar_cotacao(bot: WebBot, moeda: str) -> Tuple[str, str]:
     """
-    Realiza uma pesquisa no Google para obter a cotação e a data atual da moeda fornecida.
+    Realiza uma busca no Google para obter cotação e data da moeda.
 
-    :param bot: Instância do WebBot usada para interagir com o navegador.
-    :param moeda: Nome da moeda a ser consultada.
-    :return: Tupla com (cotação, data).
-    :raises RuntimeError: Em caso de falha ao buscar a cotação.
+    :param bot: Instância do WebBot.
+    :param moeda: Nome da moeda.
+    :return: Tupla com cotação e data.
+    :raises RuntimeError: Em caso de falha ao localizar elementos.
     """
     try:
         pesquisa = bot.find_element('//*[@id="APjFqb"]', By.XPATH)
         pesquisa.clear()
         pesquisa.send_keys(f"Cotação do {moeda} hoje")
         bot.enter()
-        bot.wait(500)
 
         cotacao = bot.find_element(
             '//*[@id="knowledge-currency__updatable-data-column"]/div[1]/div[2]/span[1]',
@@ -65,35 +63,32 @@ def buscar_cotacao(bot: WebBot, moeda: str) -> Tuple[str, str]:
         raise RuntimeError(f"Erro ao buscar cotação da moeda {moeda}: {e}")
 
 
-def salvar_dados_csv(bot: WebBot, planilha: BotCSVPlugin, nome_arquivo: str) -> None:
+def salvar_dados_excel(df: pd.DataFrame, bot: WebBot, nome_arquivo: str) -> None:
     """
-    Salva os dados da planilha em um arquivo CSV.
+    Salva o DataFrame em um arquivo Excel.
 
-    :param bot: Instância do WebBot usada para resolver o caminho do arquivo.
-    :param planilha: Instância do BotCSVPlugin com os dados atualizados.
+    :param df: DataFrame a ser salvo.
+    :param bot: Instância do WebBot para resolver o caminho.
     :param nome_arquivo: Nome do arquivo de saída.
     """
-    caminho_saida = bot.get_resource_abspath(nome_arquivo)
-    planilha.write(caminho_saida)
-    logging.info(f"Arquivo salvo em: {caminho_saida}")
+    caminho = bot.get_resource_abspath(nome_arquivo)
+    df.to_excel(caminho, index=False)
+    logging.info(f"Arquivo salvo em: {caminho}")
 
 
-def processar_moedas(
-    bot: WebBot, planilha: BotCSVPlugin, dados: List[Dict[str, str]]
-) -> Tuple[int, int]:
+def processar_moedas(bot: WebBot, df: pd.DataFrame) -> Tuple[pd.DataFrame, int, int]:
     """
-    Processa a lista de moedas, busca as cotações e atualiza a planilha com os resultados.
+    Processa o DataFrame para preencher cotações e datas das moedas.
 
     :param bot: Instância do WebBot.
-    :param planilha: Instância do BotCSVPlugin a ser preenchida.
-    :param dados: Lista de dicionários com os dados das moedas.
-    :return: Tupla com (quantidade de processados, quantidade de falhas).
+    :param df: DataFrame original.
+    :return: Tupla contendo DataFrame atualizado, total de processados e falhas.
     """
     processados = 0
     falhas = 0
 
-    for i, linha in enumerate(dados):
-        moeda = linha.get("Moeda")
+    for i, row in df.iterrows():
+        moeda = row.get("Moeda")
         if not moeda:
             logging.warning(f"Registro na linha {i} está incompleto.")
             falhas += 1
@@ -102,18 +97,17 @@ def processar_moedas(
         try:
             logging.info(f"Processando: {moeda}")
             cotacao, data = buscar_cotacao(bot, moeda)
-            planilha.set_entry("Moeda", i, moeda)
-            planilha.set_entry("Cotação", i, cotacao)
-            planilha.set_entry("Data", i, data)
+            df.at[i, "Cotação"] = cotacao
+            df.at[i, "Data"] = data
             processados += 1
         except Exception as e:
             logging.error(f"Falha ao processar {moeda}: {e}")
             falhas += 1
 
-    return processados, falhas
+    return df, processados, falhas
 
 
-def main():
+def main() -> None:
     maestro = BotMaestroSDK.from_sys_args()
     execution = maestro.get_execution()
     logging.info(f"Tarefa Maestro ID: {execution.task_id}")
@@ -127,11 +121,9 @@ def main():
     processados = 0
     falhas = 0
 
-    planilha = BotCSVPlugin()
-
     try:
-        dados = carregar_dados_csv(bot, "moedas.csv")
-        total = len(dados)
+        df = carregar_dados_csv(bot, "moedas.csv")
+        total = len(df)
     except Exception as e:
         logging.critical(str(e))
         maestro.finish_task(
@@ -144,13 +136,12 @@ def main():
         )
         return
 
-    logging.info("Iniciando busca no Google...")
     bot.browse("https://www.google.com")
     bot.wait(1000)
 
-    processados, falhas = processar_moedas(bot, planilha, dados)
+    df, processados, falhas = processar_moedas(bot, df)
 
-    salvar_dados_csv(bot, planilha, "moedas_atualizadas.csv")
+    salvar_dados_excel(df, bot, "moedas_atualizadas.xlsx")
 
     bot.wait(1000)
     bot.stop_browser()
