@@ -4,6 +4,7 @@ from typing import Tuple
 from botcity.web import WebBot, Browser, By
 from botcity.maestro import *
 from webdriver_manager.chrome import ChromeDriverManager
+from utils.screenshot_error import screenshot_error
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -60,6 +61,7 @@ def buscar_cotacao(bot: WebBot, moeda: str) -> Tuple[str, str]:
 
         return cotacao, data
     except Exception as e:
+        screenshot_error(bot.driver, f"Erro {moeda}")
         raise RuntimeError(f"Erro ao buscar cotação da moeda {moeda}: {e}")
 
 
@@ -126,6 +128,7 @@ def main() -> None:
         total = len(df)
     except Exception as e:
         logging.critical(str(e))
+        bot.save_screenshot("erro.png")
         maestro.finish_task(
             task_id=execution.task_id,
             status=AutomationTaskFinishStatus.FAILED,
@@ -137,13 +140,13 @@ def main() -> None:
         return
 
     bot.browse("https://www.google.com")
-    bot.wait(1000)
+    bot.wait(2000)
 
     df, processados, falhas = processar_moedas(bot, df)
 
     salvar_dados_excel(df, bot, "moedas_atualizadas.xlsx")
 
-    bot.wait(1000)
+    bot.wait(2000)
     bot.stop_browser()
 
     status = (
