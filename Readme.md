@@ -13,6 +13,7 @@ Este projeto é um bot de automação criado com [BotCity](https://botcity.dev/)
 - ✅ Integração com o **BotCity Maestro** para controle de tarefas RPA.
 - ✅ Uso de **docstrings e tipagem** para melhorar a legibilidade e manutenção.
 - ✅ Inclusão de **testes automatizados com `pytest`**.
+- ✅ Uso de docker.
 
 ---
 
@@ -23,6 +24,7 @@ Este projeto é um bot de automação criado com [BotCity](https://botcity.dev/)
 - [BotCity Maestro SDK](https://github.com/botcity-dev/botcity-maestro-sdk)
 - [webdriver-manager](https://pypi.org/project/webdriver-manager/)
 - Google Chrome
+- Docker
 - Pandas
 
 ---
@@ -55,6 +57,8 @@ Este projeto é um bot de automação criado com [BotCity](https://botcity.dev/)
 ├── README.md
 ├── requirements.txt
 ├── .gitignore
+├── docker-compose.yml
+├── Dockerfile
 ```
 
 ## 📦 Instalação
@@ -84,4 +88,10 @@ pip install -r requirements.txt
 
 ```bash
 python bot.py
+```
+
+### 5. Rodar o projeto no Docker
+
+```bash
+docker compose up
 ```
