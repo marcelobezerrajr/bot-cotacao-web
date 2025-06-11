@@ -78,14 +78,9 @@ def salvar_dados_excel(df: pd.DataFrame, bot: WebBot, nome_arquivo: str) -> None
     logging.info(f"Arquivo salvo em: {caminho}")
 
 
-def processar_moedas(bot: WebBot, df: pd.DataFrame) -> Tuple[pd.DataFrame, int, int]:
-    """
-    Processa o DataFrame para preencher cotações e datas das moedas.
-
-    :param bot: Instância do WebBot.
-    :param df: DataFrame original.
-    :return: Tupla contendo DataFrame atualizado, total de processados e falhas.
-    """
+def processar_moedas(
+    bot: WebBot, df: pd.DataFrame, maestro: BotMaestroSDK, execution: AutomationTask
+) -> Tuple[pd.DataFrame, int, int]:
     processados = 0
     falhas = 0
 
@@ -97,11 +92,28 @@ def processar_moedas(bot: WebBot, df: pd.DataFrame) -> Tuple[pd.DataFrame, int, 
             continue
 
         try:
+            maestro.alert(
+                task_id=execution.task_id,
+                title=f"Consultando {moeda}",
+                message=f"Buscando cotação da moeda: {moeda}...",
+                alert_type=AlertType.INFO,
+            )
+
             logging.info(f"Processando: {moeda}")
             cotacao, data = buscar_cotacao(bot, moeda)
             df.at[i, "Cotação"] = cotacao
             df.at[i, "Data"] = data
             processados += 1
+
+            maestro.new_log_entry(
+                activity_label="Consulta-Cotacao",
+                values={
+                    "moeda": moeda,
+                    "cotacao": cotacao,
+                    "data": data,
+                },
+            )
+
         except Exception as e:
             logging.error(f"Falha ao processar {moeda}: {e}")
             falhas += 1
@@ -124,11 +136,26 @@ def main() -> None:
     falhas = 0
 
     try:
+        maestro.alert(
+            task_id=execution.task_id,
+            title="Iniciando o processo",
+            message="Carregando dados do arquivo CSV...",
+            alert_type=AlertType.INFO,
+        )
+
         df = carregar_dados_csv(bot, "moedas.csv")
         total = len(df)
     except Exception as e:
         logging.critical(str(e))
         bot.save_screenshot("erro.png")
+
+        maestro.alert(
+            task_id=execution.task_id,
+            title="Erro ao carregar dados",
+            message=str(e),
+            alert_type=AlertType.ERROR,
+        )
+
         maestro.finish_task(
             task_id=execution.task_id,
             status=AutomationTaskFinishStatus.FAILED,
@@ -139,10 +166,24 @@ def main() -> None:
         )
         return
 
+    maestro.alert(
+        task_id=execution.task_id,
+        title="Acessando Google",
+        message="Abrindo navegador para buscar as cotações...",
+        alert_type=AlertType.INFO,
+    )
+
     bot.browse("https://www.google.com")
     bot.wait(2000)
 
-    df, processados, falhas = processar_moedas(bot, df)
+    maestro.alert(
+        task_id=execution.task_id,
+        title="Iniciando busca",
+        message="Consultando cotações de moedas...",
+        alert_type=AlertType.INFO,
+    )
+
+    df, processados, falhas = processar_moedas(bot, df, maestro, execution)
 
     salvar_dados_excel(df, bot, "moedas_atualizadas.xlsx")
 
@@ -158,6 +199,13 @@ def main() -> None:
         "Bot finalizado com sucesso."
         if falhas == 0
         else f"Bot finalizado com {falhas} falhas."
+    )
+
+    maestro.alert(
+        task_id=execution.task_id,
+        title="Processo finalizado",
+        message=mensagem,
+        alert_type=AlertType.INFO if falhas == 0 else AlertType.WARNING,
     )
 
     maestro.finish_task(
