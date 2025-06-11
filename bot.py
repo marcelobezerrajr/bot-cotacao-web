@@ -1,9 +1,10 @@
-import logging
 from botcity.web import WebBot, Browser
 from botcity.maestro import *
 from webdriver_manager.chrome import ChromeDriverManager
 from app.arquivos import carregar_dados_csv, salvar_dados_excel
 from app.processamento import processar_moedas
+import logging
+import tempfile
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -17,9 +18,18 @@ def main():
     logging.info(f"Tarefa Maestro ID: {execution.task_id}")
 
     bot = WebBot()
-    bot.headless = execution.parameters.get("headless", "false").lower() == "true"
     bot.browser = Browser.CHROME
+    bot.headless = True
     bot.driver_path = ChromeDriverManager().install()
+
+    user_data_dir = tempfile.mkdtemp()
+
+    bot.extra_options = [
+        "--headless=new",
+        "--no-sandbox",
+        "--disable-dev-shm-usage",
+        f"--user-data-dir={user_data_dir}",
+    ]
 
     total = processados = falhas = 0
 
@@ -94,7 +104,7 @@ def main():
         task_id=execution.task_id,
         title="Processo finalizado",
         message=mensagem,
-        alert_type=AlertType.INFO if falhas == 0 else AlertType.WARNING,
+        alert_type=AlertType.INFO if falhas == 0 else AlertType.WARN,
     )
 
     maestro.finish_task(

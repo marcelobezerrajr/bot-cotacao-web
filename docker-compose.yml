@@ -1,0 +1,27 @@
+services:
+  botcity:
+    image: botcity/botcity-python-web-chrome:latest
+    command: BotRunner
+    environment:
+      SERVER: developers
+      LOGIN: 62e4fe7a-a336-4a88-8c8d-e938828d1162
+      KEY: 62E_US7ZYONEEWSNFSVLINCX
+      MACHINE_ID: Developer-Cotacao
+    shm_size: "2gb"
+
+# services:
+#   bot:
+#     container_name: botcity-bot
+#     build: .
+#     ports:
+#       - "5000:5000"
+#     environment:
+#       SERVER: developers
+#       LOGIN: 62e4fe7a-a336-4a88-8c8d-e938828d1162
+#       KEY: 62E_US7ZYONEEWSNFSVLINCX
+#       MACHINE_ID: Developer-Cotacao
+#     volumes:
+#       - .:/bot-cotacao
+#     shm_size: "2gb"
+#     stdin_open: true
+#     tty: true
