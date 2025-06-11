@@ -1,9 +1,11 @@
-import logging
-import pandas as pd
-from typing import Tuple
 from botcity.web import WebBot, Browser, By
 from botcity.maestro import *
 from webdriver_manager.chrome import ChromeDriverManager
+from typing import Tuple
+import pandas as pd
+import logging
+import os
+
 from utils.screenshot_error import screenshot_error
 
 logging.basicConfig(
@@ -34,7 +36,9 @@ def carregar_dados_csv(bot: WebBot, nome_arquivo: str) -> pd.DataFrame:
         raise Exception(f"Erro ao ler '{nome_arquivo}': {e}")
 
 
-def buscar_cotacao(bot: WebBot, moeda: str) -> Tuple[str, str]:
+def buscar_cotacao(
+    bot: WebBot, moeda: str, maestro: BotMaestroSDK, execution
+) -> Tuple[str, str]:
     """
     Realiza uma busca no Google para obter cotação e data da moeda.
 
@@ -61,11 +65,18 @@ def buscar_cotacao(bot: WebBot, moeda: str) -> Tuple[str, str]:
 
         return cotacao, data
     except Exception as e:
-        screenshot_error(bot.driver, f"Erro {moeda}")
+        screenshot_path = screenshot_error(bot.driver, f"Erro_{moeda}")
+
+        maestro.post_artifact(
+            task_id=execution.task_id,
+            artifact_name=f"Erro - {moeda}",
+            filepath=screenshot_path,
+        )
+
         raise RuntimeError(f"Erro ao buscar cotação da moeda {moeda}: {e}")
 
 
-def salvar_dados_excel(df: pd.DataFrame, bot: WebBot, nome_arquivo: str) -> None:
+def salvar_dados_excel(df: pd.DataFrame, nome_arquivo: str) -> None:
     """
     Salva o DataFrame em um arquivo Excel.
 
@@ -73,7 +84,9 @@ def salvar_dados_excel(df: pd.DataFrame, bot: WebBot, nome_arquivo: str) -> None
     :param bot: Instância do WebBot para resolver o caminho.
     :param nome_arquivo: Nome do arquivo de saída.
     """
-    caminho = bot.get_resource_abspath(nome_arquivo)
+    os.makedirs("resources", exist_ok=True)
+
+    caminho = os.path.join("resources", nome_arquivo)
     df.to_excel(caminho, index=False)
     logging.info(f"Arquivo salvo em: {caminho}")
 
@@ -92,15 +105,8 @@ def processar_moedas(
             continue
 
         try:
-            maestro.alert(
-                task_id=execution.task_id,
-                title=f"Consultando {moeda}",
-                message=f"Buscando cotação da moeda: {moeda}...",
-                alert_type=AlertType.INFO,
-            )
-
             logging.info(f"Processando: {moeda}")
-            cotacao, data = buscar_cotacao(bot, moeda)
+            cotacao, data = buscar_cotacao(bot, moeda, maestro, execution)
             df.at[i, "Cotação"] = cotacao
             df.at[i, "Data"] = data
             processados += 1
@@ -143,11 +149,13 @@ def main() -> None:
             alert_type=AlertType.INFO,
         )
 
-        df = carregar_dados_csv(bot, "moedas.csv")
+        df = carregar_dados_csv(bot, "resources/moedas.csv")
         total = len(df)
     except Exception as e:
         logging.critical(str(e))
         bot.save_screenshot("erro.png")
+
+        maestro.error(task_id=execution.task_id, exception=e, screenshot="erro.png")
 
         maestro.alert(
             task_id=execution.task_id,
@@ -166,13 +174,6 @@ def main() -> None:
         )
         return
 
-    maestro.alert(
-        task_id=execution.task_id,
-        title="Acessando Google",
-        message="Abrindo navegador para buscar as cotações...",
-        alert_type=AlertType.INFO,
-    )
-
     bot.browse("https://www.google.com")
     bot.wait(2000)
 
@@ -185,7 +186,12 @@ def main() -> None:
 
     df, processados, falhas = processar_moedas(bot, df, maestro, execution)
 
-    salvar_dados_excel(df, bot, "moedas_atualizadas.xlsx")
+    salvar_dados_excel(df, "moedas_atualizadas.xlsx")
+    maestro.post_artifact(
+        task_id=execution.task_id,
+        artifact_name="Cotações atualizadas",
+        filepath=bot.get_resource_abspath("resources/moedas_atualizadas.xlsx"),
+    )
 
     bot.wait(2000)
     bot.stop_browser()

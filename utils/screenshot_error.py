@@ -1,10 +1,11 @@
-def screenshot_error(driver, error_message):
+def screenshot_error(driver, error_message) -> str:
     """
-    Takes a screenshot of the current browser window and saves it with the error message as part of the filename.
+    Faz uma captura de tela da janela atual do navegador e a salva com a mensagem de erro como parte do nome do arquivo.
 
-    Args:
-        driver: The Selenium WebDriver instance.
-        error_message: A string containing the error message to include in the screenshot filename.
+    :param driver: A instância do Selenium WebDriver.
+    :param error_message: Uma string contendo a mensagem de erro a ser incluída no nome do arquivo da captura de tela.
+
+    :return: Caminho da captura de tela salva.
     """
     import time
 
@@ -14,3 +15,4 @@ def screenshot_error(driver, error_message):
     driver.save_screenshot(screenshot_filename)
 
     print(f"Screenshot saved as {screenshot_filename}")
+    return screenshot_filename
