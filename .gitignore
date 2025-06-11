@@ -1,4 +1,3 @@
 *.zip
 *.pyc
 __pycache__/
-docker

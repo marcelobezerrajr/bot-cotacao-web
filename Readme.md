@@ -1,6 +1,6 @@
 # Bot de Cotação de Moedas com Python e BotCity 🤖
 
-Este projeto é um bot de automação criado com [BotCity](https://botcity.dev/) que realiza buscas no Google para obter a cotação atual de diferentes moedas, com base em uma planilha CSV de entrada. Os resultados são extraídos e salvos em uma nova planilha CSV, automatizando completamente o processo de pesquisa de valores de câmbio.
+Este projeto é um bot de automação criado com [BotCity](https://botcity.dev/) que realiza buscas no Google para obter a cotação atual de diferentes moedas, com base em uma planilha CSV de entrada. Os resultados são extraídos e salvos em uma nova planilha Excel, automatizando completamente o processo de pesquisa de valores de câmbio.
 
 ---
 
@@ -9,7 +9,7 @@ Este projeto é um bot de automação criado com [BotCity](https://botcity.dev/)
 - ✅ Leitura automatizada de uma planilha CSV com a lista de moedas.
 - ✅ Busca no Google da cotação e data atual de cada moeda.
 - ✅ Extração dos dados de forma estruturada.
-- ✅ Escrita dos dados atualizados em uma nova planilha CSV.
+- ✅ Escrita dos dados atualizados em uma nova planilha Excel.
 - ✅ Integração com o **BotCity Maestro** para controle de tarefas RPA.
 - ✅ Uso de **docstrings e tipagem** para melhorar a legibilidade e manutenção.
 - ✅ Inclusão de **testes automatizados com `pytest`**.
@@ -23,7 +23,7 @@ Este projeto é um bot de automação criado com [BotCity](https://botcity.dev/)
 - [BotCity Maestro SDK](https://github.com/botcity-dev/botcity-maestro-sdk)
 - [webdriver-manager](https://pypi.org/project/webdriver-manager/)
 - Google Chrome
-- Plugin CSV da BotCity
+- Pandas
 
 ---
 
@@ -31,17 +31,30 @@ Este projeto é um bot de automação criado com [BotCity](https://botcity.dev/)
 
 ```bash
 .
+├── app/
+│   └── arquivos.py
+│   └── cotacao.py 
+│   └── processamento.py 
+├── build/
+│   └── build.bat
+│   └── build.ps1
+│   └── build.sh
+├── files/
+│   └── bot-cotacao.botproj
+│   └── bot-cotacao.zip          # Arquivo zip do bot
 ├── resources/
-│   └── moedas_atualizadas.csv  # Arquivo gerado com cotações atualizadas
-│   └── moedas.csv              # Arquivo de entrada com a lista de moedas
-├── bot.py                      # Arquivo principal do bot
-├── bot-cotacao.zip             # Arquivo zip do bot
-├── bot-cotacao.botproj
-├── build.bat
-├── build.ps1
-├── build.sh
+│   └── moedas_atualizadas.xlsx  # Arquivo gerado com cotações atualizadas
+│   └── moedas.csv               # Arquivo de entrada com a lista de moedas
+├── tests/
+│   └── test_arquivos.py
+│   └── test_cotacao.py
+│   └── test_processamento.py
+├── utils/
+│   └── screenshot_error.py
+├── bot.py                       # Arquivo principal do bot
 ├── README.md
 ├── requirements.txt
+├── .gitignore
 ```
 
 ## 📦 Instalação
@@ -65,4 +78,10 @@ venv\Scripts\activate     # Windows
 
 ```bash
 pip install -r requirements.txt
+```
+
+### 4. Rode o projeto
+
+```bash
+python bot.py
 ```
