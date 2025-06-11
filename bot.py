@@ -1,133 +1,17 @@
-from botcity.web import WebBot, Browser, By
+import logging
+from botcity.web import WebBot, Browser
 from botcity.maestro import *
 from webdriver_manager.chrome import ChromeDriverManager
-from typing import Tuple
-import pandas as pd
-import logging
-import os
-
-from utils.screenshot_error import screenshot_error
+from app.arquivos import carregar_dados_csv, salvar_dados_excel
+from app.processamento import processar_moedas
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
-
 BotMaestroSDK.RAISE_NOT_CONNECTED = False
 
 
-def carregar_dados_csv(bot: WebBot, nome_arquivo: str) -> pd.DataFrame:
-    """
-    Carrega os dados de um arquivo CSV em um DataFrame do pandas.
-
-    :param bot: Instância do WebBot para resolver caminho do recurso.
-    :param nome_arquivo: Nome do arquivo CSV.
-    :return: DataFrame contendo os dados.
-    :raises FileNotFoundError: Se o arquivo não for encontrado.
-    :raises Exception: Para outros erros ao ler o CSV.
-    """
-    caminho = bot.get_resource_abspath(nome_arquivo)
-    try:
-        df = pd.read_csv(caminho)
-        logging.info(f"{len(df)} registros carregados de '{nome_arquivo}'.")
-        return df
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Arquivo '{nome_arquivo}' não encontrado.")
-    except Exception as e:
-        raise Exception(f"Erro ao ler '{nome_arquivo}': {e}")
-
-
-def buscar_cotacao(
-    bot: WebBot, moeda: str, maestro: BotMaestroSDK, execution
-) -> Tuple[str, str]:
-    """
-    Realiza uma busca no Google para obter cotação e data da moeda.
-
-    :param bot: Instância do WebBot.
-    :param moeda: Nome da moeda.
-    :return: Tupla com cotação e data.
-    :raises RuntimeError: Em caso de falha ao localizar elementos.
-    """
-    try:
-        pesquisa = bot.find_element('//*[@id="APjFqb"]', By.XPATH)
-        pesquisa.clear()
-        pesquisa.send_keys(f"Cotação do {moeda} hoje")
-        bot.enter()
-
-        cotacao = bot.find_element(
-            '//*[@id="knowledge-currency__updatable-data-column"]/div[1]/div[2]/span[1]',
-            By.XPATH,
-        ).text
-
-        data = bot.find_element(
-            '//*[@id="knowledge-currency__updatable-data-column"]/div[2]/span[1]',
-            By.XPATH,
-        ).text
-
-        return cotacao, data
-    except Exception as e:
-        screenshot_path = screenshot_error(bot.driver, f"Erro_{moeda}")
-
-        maestro.post_artifact(
-            task_id=execution.task_id,
-            artifact_name=f"Erro - {moeda}",
-            filepath=screenshot_path,
-        )
-
-        raise RuntimeError(f"Erro ao buscar cotação da moeda {moeda}: {e}")
-
-
-def salvar_dados_excel(df: pd.DataFrame, nome_arquivo: str) -> None:
-    """
-    Salva o DataFrame em um arquivo Excel.
-
-    :param df: DataFrame a ser salvo.
-    :param bot: Instância do WebBot para resolver o caminho.
-    :param nome_arquivo: Nome do arquivo de saída.
-    """
-    os.makedirs("resources", exist_ok=True)
-
-    caminho = os.path.join("resources", nome_arquivo)
-    df.to_excel(caminho, index=False)
-    logging.info(f"Arquivo salvo em: {caminho}")
-
-
-def processar_moedas(
-    bot: WebBot, df: pd.DataFrame, maestro: BotMaestroSDK, execution: AutomationTask
-) -> Tuple[pd.DataFrame, int, int]:
-    processados = 0
-    falhas = 0
-
-    for i, row in df.iterrows():
-        moeda = row.get("Moeda")
-        if not moeda:
-            logging.warning(f"Registro na linha {i} está incompleto.")
-            falhas += 1
-            continue
-
-        try:
-            logging.info(f"Processando: {moeda}")
-            cotacao, data = buscar_cotacao(bot, moeda, maestro, execution)
-            df.at[i, "Cotação"] = cotacao
-            df.at[i, "Data"] = data
-            processados += 1
-
-            maestro.new_log_entry(
-                activity_label="Consulta-Cotacao",
-                values={
-                    "moeda": moeda,
-                    "cotacao": cotacao,
-                    "data": data,
-                },
-            )
-
-        except Exception as e:
-            logging.error(f"Falha ao processar {moeda}: {e}")
-            falhas += 1
-
-    return df, processados, falhas
-
-
-def main() -> None:
+def main():
     maestro = BotMaestroSDK.from_sys_args()
     execution = maestro.get_execution()
     logging.info(f"Tarefa Maestro ID: {execution.task_id}")
@@ -137,9 +21,7 @@ def main() -> None:
     bot.browser = Browser.CHROME
     bot.driver_path = ChromeDriverManager().install()
 
-    total = 0
-    processados = 0
-    falhas = 0
+    total = processados = falhas = 0
 
     try:
         maestro.alert(
@@ -149,7 +31,7 @@ def main() -> None:
             alert_type=AlertType.INFO,
         )
 
-        df = carregar_dados_csv(bot, "resources/moedas.csv")
+        df = carregar_dados_csv(bot, "moedas.csv")
         total = len(df)
     except Exception as e:
         logging.critical(str(e))
@@ -185,8 +67,8 @@ def main() -> None:
     )
 
     df, processados, falhas = processar_moedas(bot, df, maestro, execution)
-
     salvar_dados_excel(df, "moedas_atualizadas.xlsx")
+
     maestro.post_artifact(
         task_id=execution.task_id,
         artifact_name="Cotações atualizadas",
@@ -201,6 +83,7 @@ def main() -> None:
         if falhas == 0
         else AutomationTaskFinishStatus.FAILED
     )
+
     mensagem = (
         "Bot finalizado com sucesso."
         if falhas == 0
