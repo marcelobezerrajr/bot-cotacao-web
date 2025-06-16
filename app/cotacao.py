@@ -12,7 +12,9 @@ def buscar_cotacao(
 
     :param bot: Instância do WebBot.
     :param moeda: Nome da moeda.
+
     :return: Tupla com cotação e data.
+
     :raises RuntimeError: Em caso de falha ao localizar elementos.
     """
     try:

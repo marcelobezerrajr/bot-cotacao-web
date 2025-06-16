@@ -16,7 +16,9 @@ def processar_moedas(
     :param df: DataFrame contendo as moedas.
     :param maestro: Instância do BotMaestroSDK.
     :param execution: Instância do AutomationTask.
+
     :return: Tupla contendo o DataFrame atualizado, número de registros processados e falhas.
+
     :raises Exception: Se ocorrer um erro ao processar as moedas.
     """
 

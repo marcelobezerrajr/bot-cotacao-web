@@ -9,7 +9,9 @@ def carregar_dados_csv(bot, nome_arquivo: str) -> pd.DataFrame:
 
     :param bot: Instância do WebBot para resolver caminho do recurso.
     :param nome_arquivo: Nome do arquivo CSV.
+
     :return: DataFrame contendo os dados.
+
     :raises FileNotFoundError: Se o arquivo não for encontrado.
     :raises Exception: Para outros erros ao ler o CSV.
     """

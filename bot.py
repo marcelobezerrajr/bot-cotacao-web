@@ -1,10 +1,11 @@
-from botcity.web import WebBot, Browser
+from botcity.web import WebBot
 from botcity.maestro import *
-from webdriver_manager.chrome import ChromeDriverManager
+import logging
+
 from app.arquivos import carregar_dados_csv, salvar_dados_excel
 from app.processamento import processar_moedas
-import logging
-import tempfile
+from app.bot_anonimo import configurar_bot_anonimo
+
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -18,18 +19,7 @@ def main():
     logging.info(f"Tarefa Maestro ID: {execution.task_id}")
 
     bot = WebBot()
-    bot.browser = Browser.CHROME
-    bot.headless = True
-    bot.driver_path = ChromeDriverManager().install()
-
-    user_data_dir = tempfile.mkdtemp()
-
-    bot.extra_options = [
-        "--headless=new",
-        "--no-sandbox",
-        "--disable-dev-shm-usage",
-        f"--user-data-dir={user_data_dir}",
-    ]
+    configurar_bot_anonimo(bot)
 
     total = processados = falhas = 0
 
@@ -67,6 +57,16 @@ def main():
         return
 
     bot.browse("https://www.google.com")
+    bot.driver.execute_cdp_cmd(
+        "Page.addScriptToEvaluateOnNewDocument",
+        {
+            "source": """
+        Object.defineProperty(navigator, 'webdriver', {
+            get: () => undefined
+        });
+    """
+        },
+    )
     bot.wait(2000)
 
     maestro.alert(

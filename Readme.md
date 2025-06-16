@@ -34,7 +34,9 @@ Este projeto é um bot de automação criado com [BotCity](https://botcity.dev/)
 ```bash
 .
 ├── app/
+│   └── __init__.py 
 │   └── arquivos.py
+│   └── bot_anonimo.py 
 │   └── cotacao.py 
 │   └── processamento.py 
 ├── build/
@@ -48,15 +50,18 @@ Este projeto é um bot de automação criado com [BotCity](https://botcity.dev/)
 │   └── moedas_atualizadas.xlsx  # Arquivo gerado com cotações atualizadas
 │   └── moedas.csv               # Arquivo de entrada com a lista de moedas
 ├── tests/
+│   └── __init__.py 
 │   └── test_arquivos.py
 │   └── test_cotacao.py
 │   └── test_processamento.py
 ├── utils/
+│   └── __init__.py 
 │   └── screenshot_error.py
 ├── bot.py                       # Arquivo principal do bot
 ├── README.md
 ├── requirements.txt
 ├── .gitignore
+├── Mikefile
 ├── docker-compose.yml
 ├── Dockerfile
 ```
