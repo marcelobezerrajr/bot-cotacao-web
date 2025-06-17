@@ -1,6 +1,6 @@
 import pytest
 import pandas as pd
-from app.arquivos import carregar_dados_csv
+from app.manipula_arquivos import ManipulaArquivosCSVExcel
 
 
 class DummyBot:
@@ -10,7 +10,7 @@ class DummyBot:
 
 def test_carregar_dados_csv_sucesso():
     bot = DummyBot()
-    df = carregar_dados_csv(bot, "moedas.csv")
+    df = ManipulaArquivosCSVExcel.carregar_dados_csv(bot, "moedas.csv")
     assert isinstance(df, pd.DataFrame)
     assert not df.empty
 
@@ -18,4 +18,4 @@ def test_carregar_dados_csv_sucesso():
 def test_carregar_dados_csv_arquivo_nao_encontrado():
     bot = DummyBot()
     with pytest.raises(FileNotFoundError):
-        carregar_dados_csv(bot, "inexistente.csv")
+        ManipulaArquivosCSVExcel.carregar_dados_csv(bot, "inexistente.csv")

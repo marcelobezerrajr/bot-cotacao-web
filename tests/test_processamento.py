@@ -1,5 +1,5 @@
 import pandas as pd
-from app.processamento import processar_moedas
+from app.processamento_moedas import ProcessamentoDadosMoedas
 
 
 class DummyBot:
@@ -46,7 +46,9 @@ def test_processar_moedas():
         {"Moeda": ["dólar", "euro"], "Cotação": ["", ""], "Data": ["", ""]}
     )
 
-    df_result, processados, falhas = processar_moedas(bot, df, maestro, execution)
+    df_result, processados, falhas = ProcessamentoDadosMoedas.processar_moedas(
+        bot, df, maestro, execution
+    )
 
     assert processados == 2
     assert falhas == 0

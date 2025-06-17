@@ -1,5 +1,4 @@
-import pytest
-from app.cotacao import buscar_cotacao
+from app.busca_cotacao import BuscarCotacao
 
 
 class DummyBot:
@@ -38,6 +37,8 @@ def test_buscar_cotacao_sucesso():
     class DummyExecution:
         task_id = "123"
 
-    cotacao, data = buscar_cotacao(bot, "dólar", maestro, DummyExecution())
+    cotacao, data = BuscarCotacao.buscar_cotacao(
+        bot, "dólar", maestro, DummyExecution()
+    )
     assert cotacao == "5,00"
     assert isinstance(data, str)

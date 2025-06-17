@@ -35,10 +35,10 @@ Este projeto é um bot de automação criado com [BotCity](https://botcity.dev/)
 .
 ├── app/
 │   └── __init__.py 
-│   └── arquivos.py
+│   └── manipula_arquivos.py
 │   └── bot_anonimo.py 
-│   └── cotacao.py 
-│   └── processamento.py 
+│   └── busca_cotacao.py 
+│   └── processamento_moedas.py 
 ├── build/
 │   └── build.bat
 │   └── build.ps1

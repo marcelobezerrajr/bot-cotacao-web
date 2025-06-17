@@ -1,10 +1,10 @@
 from botcity.web import WebBot
-from botcity.maestro import *
+from botcity.maestro import BotMaestroSDK, AlertType, AutomationTaskFinishStatus
 import logging
 
-from app.arquivos import carregar_dados_csv, salvar_dados_excel
-from app.processamento import processar_moedas
-from app.bot_anonimo import configurar_bot_anonimo
+from app.manipula_arquivos import ManipulaArquivosCSVExcel
+from app.processamento_moedas import ProcessamentoDadosMoedas
+from app.bot_anonimo import ConfiguraBotAnonimo
 
 
 logging.basicConfig(
@@ -19,7 +19,7 @@ def main():
     logging.info(f"Tarefa Maestro ID: {execution.task_id}")
 
     bot = WebBot()
-    configurar_bot_anonimo(bot)
+    ConfiguraBotAnonimo.configurar_bot_anonimo(bot)
 
     total = processados = falhas = 0
 
@@ -31,11 +31,10 @@ def main():
             alert_type=AlertType.INFO,
         )
 
-        df = carregar_dados_csv(bot, "moedas.csv")
+        df = ManipulaArquivosCSVExcel.carregar_dados_csv(bot, "moedas.csv")
         total = len(df)
     except Exception as e:
         logging.critical(str(e))
-        bot.save_screenshot("erro.png")
 
         maestro.error(task_id=execution.task_id, exception=e, screenshot="erro.png")
 
@@ -57,16 +56,6 @@ def main():
         return
 
     bot.browse("https://www.google.com")
-    bot.driver.execute_cdp_cmd(
-        "Page.addScriptToEvaluateOnNewDocument",
-        {
-            "source": """
-        Object.defineProperty(navigator, 'webdriver', {
-            get: () => undefined
-        });
-    """
-        },
-    )
     bot.wait(2000)
 
     maestro.alert(
@@ -76,8 +65,10 @@ def main():
         alert_type=AlertType.INFO,
     )
 
-    df, processados, falhas = processar_moedas(bot, df, maestro, execution)
-    salvar_dados_excel(df, "moedas_atualizadas.xlsx")
+    df, processados, falhas = ProcessamentoDadosMoedas.processar_moedas(
+        bot, df, maestro, execution
+    )
+    ManipulaArquivosCSVExcel.salvar_dados_excel(df, "moedas_atualizadas.xlsx")
 
     maestro.post_artifact(
         task_id=execution.task_id,
