@@ -1,8 +1,9 @@
-from botcity.web import WebBot
-from botcity.maestro import BotMaestroSDK, AutomationTask
-from typing import Tuple
-import pandas as pd
 import logging
+from typing import Tuple
+
+import pandas as pd
+from botcity.maestro import AutomationTask, BotMaestroSDK
+from botcity.web import WebBot
 
 from app.busca_cotacao import BuscarCotacao
 

@@ -1,6 +1,7 @@
+import tempfile
+
 from botcity.web import Browser
 from webdriver_manager.chrome import ChromeDriverManager
-import tempfile
 
 
 class ConfiguraBotAnonimo:

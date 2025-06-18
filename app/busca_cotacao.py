@@ -1,6 +1,7 @@
-from botcity.web import WebBot, By
-from botcity.maestro import BotMaestroSDK, AutomationTask
 from typing import Tuple
+
+from botcity.maestro import AutomationTask, BotMaestroSDK
+from botcity.web import By, WebBot
 
 from utils.screenshot_error import screenshot_error
 

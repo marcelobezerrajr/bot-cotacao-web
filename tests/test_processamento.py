@@ -1,4 +1,5 @@
 import pandas as pd
+
 from app.processamento_moedas import ProcessamentoDadosMoedas
 
 

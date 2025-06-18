@@ -1,5 +1,6 @@
-import pytest
 import pandas as pd
+import pytest
+
 from app.manipula_arquivos import ManipulaArquivosCSVExcel
 
 

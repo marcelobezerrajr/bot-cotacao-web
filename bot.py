@@ -1,11 +1,11 @@
-from botcity.web import WebBot
-from botcity.maestro import BotMaestroSDK, AlertType, AutomationTaskFinishStatus
 import logging
 
+from botcity.maestro import AlertType, AutomationTaskFinishStatus, BotMaestroSDK
+from botcity.web import WebBot
+
+from app.bot_anonimo import ConfiguraBotAnonimo
 from app.manipula_arquivos import ManipulaArquivosCSVExcel
 from app.processamento_moedas import ProcessamentoDadosMoedas
-from app.bot_anonimo import ConfiguraBotAnonimo
-
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
