@@ -1,22 +1,27 @@
-import pandas as pd
-import pytest
+"""
+Testes para a classe ManipulaArquivosCSVExcel, responsável por ler e salvar arquivos CSV e Excel.
+"""
 
+import pandas as pd
 from app.manipula_arquivos import ManipulaArquivosCSVExcel
 
 
-class DummyBot:
-    def get_resource_abspath(self, filename):
-        return f"resources/{filename}"
-
-
 def test_carregar_dados_csv_sucesso():
-    bot = DummyBot()
-    df = ManipulaArquivosCSVExcel.carregar_dados_csv(bot, "moedas.csv")
+    """
+    Testa se o carregamento de um arquivo CSV existente retorna um DataFrame válido e não vazio.
+    O arquivo 'moedas.csv' deve estar presente na pasta 'resources' com a coluna 'Moeda'.
+    """
+    manipulador = ManipulaArquivosCSVExcel()
+    df = manipulador.carregar_dados_csv("moedas.csv")
     assert isinstance(df, pd.DataFrame)
     assert not df.empty
+    assert "Moeda" in df.columns
 
 
 def test_carregar_dados_csv_arquivo_nao_encontrado():
-    bot = DummyBot()
-    with pytest.raises(FileNotFoundError):
-        ManipulaArquivosCSVExcel.carregar_dados_csv(bot, "inexistente.csv")
+    """
+    Testa se o carregamento de um arquivo inexistente retorna um DataFrame vazio.
+    """
+    manipulador = ManipulaArquivosCSVExcel()
+    df = manipulador.carregar_dados_csv("inexistente.csv")
+    assert df.empty

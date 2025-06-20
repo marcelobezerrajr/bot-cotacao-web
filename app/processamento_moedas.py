@@ -1,59 +1,47 @@
-import logging
-from typing import Tuple
+"""
+Processa uma lista de moedas.
+"""
 
 import pandas as pd
-from botcity.maestro import AutomationTask, BotMaestroSDK
+from botcity.maestro import AlertType, BotMaestroSDK
 from botcity.web import WebBot
 
-from app.busca_cotacao import BuscarCotacao
+from app.busca_cotacao import buscar_cotacao
 
 
-class ProcessamentoDadosMoedas:
+def processar_moedas(
+    bot: WebBot, df: pd.DataFrame, maestro: BotMaestroSDK, execution
+) -> tuple[pd.DataFrame, int, int]:
     """
-    Classe responsável por processar os dados das moedas, preenchendo cotações e datas.
+    Processa as moedas do DataFrame, buscando suas cotações.
+
+    :param bot: Instância do WebBot.
+    :param df: DataFrame contendo as moedas.
+    :param maestro: Instância do BotMaestroSDK.
+    :param execution: Instância do AutomationTask.
+    :return: Tupla com DataFrame atualizado, total de processados e falhas.
     """
+    processados = falhas = 0
 
-    def processar_moedas(
-        bot: WebBot, df: pd.DataFrame, maestro: BotMaestroSDK, execution: AutomationTask
-    ) -> Tuple[pd.DataFrame, int, int]:
-        """
-        Processa o DataFrame para preencher cotações e datas das moedas.
+    for i, linha in df.iterrows():
+        moeda = linha["Moeda"]
+        try:
+            cotacao, data = buscar_cotacao(bot, moeda, maestro, execution)
+            df.at[i, "Cotação"] = cotacao
+            df.at[i, "Data"] = data
+            processados += 1
 
-        :param bot: Instância do WebBot.
-        :param df: DataFrame contendo as moedas.
-        :param maestro: Instância do BotMaestroSDK.
-        :param execution: Instância do AutomationTask.
+            maestro.new_log_entry(
+                activity_label="Consulta-Cotacao",
+                values={"Moeda": moeda, "Cotação": cotacao, "Data": data},
+            )
+        except ValueError as e:
+            maestro.alert(
+                task_id=execution.task_id,
+                title=f"Dados Inválidos para Moeda: {moeda}",
+                message=f"Falha ao buscar cotação: {e}. Verifique os dados de entrada.",
+                alert_type=AlertType.ERROR,
+            )
+            falhas += 1
 
-        :return: Tupla contendo o DataFrame atualizado, número de registros processados e falhas.
-
-        :raises Exception: Se ocorrer um erro ao processar as moedas.
-        """
-
-        processados = 0
-        falhas = 0
-
-        for index, row in df.iterrows():
-            moeda = row.get("Moeda")
-            if not moeda:
-                logging.warning(f"[Linha {index}] Registro está incompleto.")
-                falhas += 1
-                continue
-
-            try:
-                logging.info(f"[Linha {index}] Processando moeda: {moeda}")
-                cotacao, data = BuscarCotacao.buscar_cotacao(
-                    bot, moeda, maestro, execution
-                )
-                df.at[index, "Cotação"] = cotacao
-                df.at[index, "Data"] = data
-                processados += 1
-
-                maestro.new_log_entry(
-                    activity_label="Consulta-Cotacao",
-                    values={"moeda": moeda, "cotacao": cotacao, "data": data},
-                )
-            except Exception as e:
-                logging.error(f"[Linha {index}] Falha ao processar {moeda}: {e}")
-                falhas += 1
-
-        return df, processados, falhas
+    return df, processados, falhas

@@ -1,25 +1,24 @@
 Id,Moeda,Símbolo,Código
 1,Dólar,$,USD
 2,Euro,€,EUR
-3,Real,R$,BRL
-4,Libra Esterlina,£,GBP
-5,Iene,¥,JPY
-6,Franco Suíço,CHF,CHF
-7,Dólar Australiano,A$,AUD
-8,Peso Mexicano,$,MXN
-9,Dólar Canadiano,$,CAD
-10,Dólar de Hong Kong,HK$,HKD
-11,Yuan Chinês,¥,CNY
-12,Rúpia Indiana,₹,INR
-13,Peso Chileno,$,CLP
-14,Peso Argentino,$,ARS
-15,Peso Colombiano,$,COP
-16,Rúpia Russa,₽,RUB
-17,Riyal Saudi,﷼,SAR
-18,Dólar de Singapura,S$,SGD
-19,Peso Filipino,₱,PHP
-20,Yuan de Taiwan,NT$,TWD
-21,Dinar Iraquiano,؋,IQD
-22,Rúpia Sri Lanka,Rs,LKR
-23,Yuan Chinês,¥,CNY
-24,Won Sul-Coreano,₩,KRW
+3,Libra Esterlina,£,GBP
+4,Iene,¥,JPY
+5,Franco Suíço,CHF,CHF
+6,Dólar Australiano,A$,AUD
+7,Peso Mexicano,$,MXN
+8,Dólar Canadiano,$,CAD
+9,Dólar de Hong Kong,HK$,HKD
+10,Yuan Chinês,¥,CNY
+11,Rúpia Indiana,₹,INR
+12,Peso Chileno,$,CLP
+13,Peso Argentino,$,ARS
+14,Peso Colombiano,$,COP
+15,Rúpia Russa,₽,RUB
+16,Riyal Saudi,﷼,SAR
+17,Dólar de Singapura,S$,SGD
+18,Peso Filipino,₱,PHP
+19,Yuan de Taiwan,NT$,TWD
+20,Dinar Iraquiano,؋,IQD
+21,Rúpia Sri Lanka,Rs,LKR
+22,Yuan Chinês,¥,CNY
+23,Won Sul-Coreano,₩,KRW
